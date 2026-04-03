@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Resistor Calculator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:monospace;background:#0a0a1a;color:#e0e0ff;min-height:100vh;padding:20px}
+.dashboard{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:900px;margin:0 auto}
+.header{grid-column:1/-1;background:#12122a;border:1px solid #2a2a5a;border-radius:12px;padding:20px 24px;display:flex;align-items:center;gap:16px}
+.header h1{color:#4db8ff;font-size:22px;letter-spacing:2px}
+.dot{width:10px;height:10px;border-radius:50%;background:#4db8ff;animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.card{background:#12122a;border:1px solid #2a2a5a;border-radius:12px;padding:20px}
+.card h3{color:#4db8ff;font-size:13px;letter-spacing:1px;margin-bottom:16px}
+.band-item{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.band-label{color:#8888bb;font-size:12px;min-width:80px}
+select{background:#0d0d22;color:#f0d000;border:1px solid #2a2a5a;padding:8px 12px;font-family:monospace;font-size:13px;border-radius:8px;width:100%;cursor:pointer;outline:none}
+select:focus{border-color:#4db8ff}
+.btn{background:#0d0d22;color:#4db8ff;border:1.5px solid #4db8ff;padding:12px 28px;font-family:monospace;font-size:14px;border-radius:8px;cursor:pointer;letter-spacing:2px;width:100%;margin-top:8px}
+.btn:hover{background:#4db8ff;color:#0a0a1a}
+.result-card{grid-column:1/-1;background:#12122a;border:1px solid #2a2a5a;border-radius:12px;padding:20px}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.metric{background:#0d0d22;border-radius:8px;padding:14px;border:1px solid #1a1a3a}
+.metric-label{color:#8888bb;font-size:11px;margin-bottom:6px;letter-spacing:1px}
+.metric-value{color:#f0d000;font-size:22px;font-weight:bold}
+.metric-value.blue{color:#4db8ff}
+.resistor-visual{display:flex;align-items:center;justify-content:center;margin-top:8px}
+.r-wire{width:50px;height:3px;background:#aaa;border-radius:2px}
+.r-body{height:28px;background:#d4a84b;border-radius:14px;width:180px;display:flex;align-items:center;justify-content:space-around;padding:0 20px}
+.r-band{width:14px;height:28px;border-radius:2px;border:1px solid rgba(0,0,0,0.2)}
+.band-labels{display:flex;gap:20px;font-size:11px;color:#8888bb;justify-content:center;margin-top:10px}
+.status{font-size:12px;color:#8888bb;text-align:center;margin-top:12px;padding:8px;border-top:1px solid #1a1a3a}
+</style>
+</head>
+<body>
+<div class="dashboard">
+
+  <div class="header">
+    <div class="dot"></div>
+    <h1>&gt; RESISTOR CALCULATOR_</h1>
+  </div>
+
+  <div class="card">
+    <h3>// BAND SELECTOR</h3>
+    <div class="band-item">
+      <span class="band-label">Band 1</span>
+      <select id="b1" onchange="update()"></select>
+    </div>
+    <div class="band-item">
+      <span class="band-label">Band 2</span>
+      <select id="b2" onchange="update()"></select>
+    </div>
+    <div class="band-item">
+      <span class="band-label">Multiplier</span>
+      <select id="b3" onchange="update()"></select>
+    </div>
+    <div class="band-item">
+      <span class="band-label">Tolerance</span>
+      <select id="b4" onchange="update()"></select>
+    </div>
+    <button class="btn" onclick="update()">&gt; CALCULATE</button>
+  </div>
+
+  <div class="card">
+    <h3>// RESISTOR VISUAL</h3>
+    <div style="display:flex;flex-direction:column;align-items:center;padding:20px 0;gap:12px">
+      <div class="resistor-visual">
+        <div class="r-wire"></div>
+        <div class="r-body">
+          <div class="r-band" id="vb1"></div>
+          <div class="r-band" id="vb2"></div>
+          <div class="r-band" id="vb3"></div>
+          <div class="r-band" id="vb4" style="margin-left:8px"></div>
+        </div>
+        <div class="r-wire"></div>
+      </div>
+      <div class="band-labels" id="blabels"></div>
+    </div>
+  </div>
+
+  <div class="result-card">
+    <h3>// OUTPUT</h3>
+    <div class="result-grid">
+      <div class="metric">
+        <div class="metric-label">RESISTANCE</div>
+        <div class="metric-value" id="res-value">---</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">TOLERANCE</div>
+        <div class="metric-value blue" id="res-tol">---</div>
+      </div>
+    </div>
+    <div class="status" id="status">&gt; Select all bands to calculate</div>
+  </div>
+
+</div>
+<script>
+const colorMap={
+  Black:{hex:"#1a1a1a",digit:0,mult:1,tol:""},
+  Brown:{hex:"#8B4513",digit:1,mult:10,tol:"+-1%"},
+  Red:{hex:"#cc0000",digit:2,mult:100,tol:"+-2%"},
+  Orange:{hex:"#ff8800",digit:3,mult:1000,tol:""},
+  Yellow:{hex:"#ffdd00",digit:4,mult:10000,tol:""},
+  Green:{hex:"#228B22",digit:5,mult:100000,tol:"+-0.5%"},
+  Blue:{hex:"#1a5fcc",digit:6,mult:1000000,tol:"+-0.25%"},
+  Violet:{hex:"#8B00FF",digit:7,mult:10000000,tol:"+-0.1%"},
+  Gray:{hex:"#888888",digit:8,mult:100000000,tol:"+-0.05%"},
+  White:{hex:"#eeeeee",digit:9,mult:1000000000,tol:""},
+  Gold:{hex:"#FFD700",digit:null,mult:0.1,tol:"+-5%"},
+  Silver:{hex:"#C0C0C0",digit:null,mult:0.01,tol:"+-10%"}
+};
+const digits=Object.entries(colorMap).filter(([,v])=>v.digit!==null);
+const all=Object.entries(colorMap);
+const tols=Object.entries(colorMap).filter(([,v])=>v.tol);
+function buildSelect(el,list){list.forEach(([name])=>{const o=document.createElement("option");o.value=name;o.text=name;el.appendChild(o);})}
+buildSelect(document.getElementById("b1"),digits);
+buildSelect(document.getElementById("b2"),digits);
+buildSelect(document.getElementById("b3"),all);
+buildSelect(document.getElementById("b4"),tols);
+document.getElementById("b1").value="Red";
+document.getElementById("b2").value="Red";
+document.getElementById("b3").value="Brown";
+document.getElementById("b4").value="Gold";
+function update(){
+  const n1=document.getElementById("b1").value;
+  const n2=document.getElementById("b2").value;
+  const n3=document.getElementById("b3").value;
+  const n4=document.getElementById("b4").value;
+  const c1=colorMap[n1],c2=colorMap[n2],c3=colorMap[n3],c4=colorMap[n4];
+  document.getElementById("vb1").style.background=c1.hex;
+  document.getElementById("vb2").style.background=c2.hex;
+  document.getElementById("vb3").style.background=c3.hex;
+  document.getElementById("vb4").style.background=c4.hex;
+  document.getElementById("blabels").innerHTML=`<span>${n1}</span><span>${n2}</span><span>${n3}</span><span style="margin-left:8px">${n4}</span>`;
+  const val=(c1.digit*10+c2.digit)*c3.mult;
+  let disp=val>=1000000?(val/1000000).toFixed(2)+"M Ohm":val>=1000?(val/1000).toFixed(2)+"K Ohm":val+" Ohm";
+  document.getElementById("res-value").textContent=disp;
+  document.getElementById("res-tol").textContent=c4.tol||"---";
+  document.getElementById("status").textContent="> Bands: "+n1+" | "+n2+" | "+n3+" | "+n4;
+}
+update();
+</script>
+</body>
+</html>
